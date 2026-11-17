@@ -27,7 +27,15 @@
     "LICENSE"
   ],
   "license": "MIT",
-  "author": "newyear happy",
+  "author": "happy-new-year24",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/happy-new-year24/dsh-writer-assistant.git"
+  },
+  "homepage": "https://github.com/happy-new-year24/dsh-writer-assistant#readme",
+  "bugs": {
+    "url": "https://github.com/happy-new-year24/dsh-writer-assistant/issues"
+  },
   "engines": {
     "node": ">=20"
   },
