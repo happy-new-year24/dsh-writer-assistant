@@ -1,7 +1,7 @@
 {
   "name": "dsh-writer-assistant",
-  "version": "1.0.0",
-  "description": "DSH bundle that connects to the local 作家助手 (Yuewen author client): daily check-in, draft creation with the most-used outline template, and writing-technique browsing, in a four-tab 创作/灵感/大纲/我的 panel.",
+  "version": "1.1.0",
+  "description": "连接本机阅文作家助手：每日签到、新建草稿、使用最高使用量大纲、浏览阅文写作技巧，并提供本地角色关系图。面板分「创作 / 灵感 / 大纲 / 关系 / 我的」五个标签。",
   "keywords": [
     "dsh",
     "dsh-plugin",
@@ -11,13 +11,15 @@
     "yuewen",
     "authorwrite",
     "novel",
-    "writing"
+    "writing",
+    "character-graph"
   ],
   "type": "module",
   "main": "lib/index.js",
   "exports": {
     ".": "./lib/index.js",
     "./client": "./lib/client.js",
+    "./relations": "./lib/relations.js",
     "./package.json": "./package.json"
   },
   "files": [
@@ -26,6 +28,9 @@
     "README.md",
     "LICENSE"
   ],
+  "scripts": {
+    "test": "node --test test/"
+  },
   "license": "MIT",
   "author": "happy-new-year24",
   "repository": {

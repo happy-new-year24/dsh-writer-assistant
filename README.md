@@ -1,77 +1,155 @@
-# dsh-writer-assistant
+# 作家助手 · DSH 组件
 
-[English](#english) | 中文
+把本机「作家助手」（阅文作者客户端）接进 DeepSeek Harness，用一个面板管理每天的写作杂事，
+外加一个不依赖网络的本地角色关系图。
 
-把本机「作家助手」（阅文作者客户端）接进 DeepSeek Harness：每天自动签到、一键新建草稿、用使用量最高的大纲起书、浏览阅创学堂的写作技巧。
+五个标签：
 
-A DSH bundle that drives the local **作家助手** (Yuewen author client) over the Chromium DevTools Protocol: daily check-in, draft creation, the most-used outline template, and writing-technique articles.
-
-> 只在 Windows 上验证过（本插件按 Windows 路径与进程名实现）。
-
----
-
-## 它是什么
-
-DSH 侧边栏多一个「作家助手」入口，主区是一个四标签面板：
-
-| 标签 | 内容 |
-| --- | --- |
-| **创作** | 填书名/简介新建私密草稿（可带大纲），列出并打开自己的作品 |
-| **灵感** | 随机灵感抽签 + 阅创学堂文章（按写作技巧/剧情设计/人物设定/开篇创作等分类） |
-| **大纲** | 读取模板中心「总纲」使用量排行，一键用使用量最高的大纲新建草稿 |
-| **我的** | 今日签到、任务进度、每日自动签到开关与执行时间、全部功能入口、连接信息与重启 |
+- **创作**：新建私密草稿（可带大纲 / 空白），查看并打开自己的作品。
+- **灵感**：随机灵感抽签 + 阅创学堂写作技巧文章（按剧情设计、人物设定、开篇创作等分类）。
+- **大纲**：读取模板中心「总纲」使用量排行，一键用当前使用量最高的大纲新建草稿。
+- **关系**：角色关系图。人名以标签形式列在侧栏，关系用不同颜色连线，点节点或连线看关联性与关联度。
+- **我的**：今日签到、任务进度、每日自动签到开关、全部功能入口、连接信息与重启。
 
 ## 它怎么工作
 
-不注入客户端、不保存账号密码、不改作家助手任何文件。
+不注入客户端、不保存账号密码、不改作家助手文件。
 
-Host 半侧在启动/连接作家助手时带上：
+DSH 的 Host 半侧在本机启动/连接作家助手时传入：
 
 ```
 --remote-debugging-port=9222
 ```
 
-随后通过 `http://127.0.0.1:9222` 的 CDP 操作**已经登录**的页面：
+并通过 `http://127.0.0.1:9222` 的 Chromium DevTools Protocol 操作已经登录的页面：
 
-- **签到**：只点文字正好是「签到」的按钮。永远不点「补签」（补签会消耗墨水，且失败会弹「墨水不足」）。
-- **建草稿**：走原生 UI 流程——模板中心「应用于新建书籍」，或首页「新建 → 私密作品」。表单用原生 `value` setter 加 `input`/`change` 事件写入，和真人输入等价。
-- **大纲**：解析卡片上的 `N使用`，按数值排序取最高。
-- **写作技巧**：打开阅创学堂 `https://write.qq.com/portal/article`，按 `label1` 分类抓文章链接。
+- 签到：只点文字正好是「签到」的按钮，绝不点「补签」。
+- 建草稿：走模板中心「应用于新建书籍」或首页「新建 → 私密作品」的原生流程。
+- 大纲：解析 `N使用`，按使用量排序，自动选最高的总纲。
+- 写作技巧：打开阅创学堂 `https://write.qq.com/portal/article`，按分类抓文章链接。
 
-调试端口只绑 `127.0.0.1`；面板接口走 DSH 自带的浏览器信任栅栏（`connection.requestRejection`）。
+调试端口只绑定 `127.0.0.1`，面板接口也走 DSH 自带的浏览器信任栅栏。
 
-### 为什么用 CDP 而不是调接口
+## 什么时候不该用这个插件
 
-作家助手的业务接口需要签名参数和会话票据，逆向那套东西既不稳定也越界。CDP 复用客户端自己的登录态，只做「人本来会做的点击」，客户端改版只影响选择器，不影响账号安全。
+判断标准很简单：**下面任何一条成立，直接用作家助手客户端更省事。**
+
+- **你只在手机上写。** 作家助手有移动端，这个插件只驱动 Windows 桌面客户端（9222 端口那套 CDP），手机上没有对应能力。
+- **你不想让任何程序碰你的作家助手。** 插件确实会启动/重启客户端进程、代替你点击页面按钮。虽然它不读正文、不存密码，但「代替点击」这件事本身就是权限——如果你不接受，别装。
+- **你正在写作、不想被打断。** 连接需要带调试端口启动客户端；如果客户端已经开着且没有调试端口，只能重启才能接上。写作中途重启有丢稿风险，所以面板把重启放在二次确认后面。**写作期间别点。**
+- **你只是想自动签到。** 那用不上四个标签。签到这一件事在「我的」里，但插件本身要装一整套。权衡一下值不值。
+- **你的作家助手不是阅文官方客户端。** 选择器是按 5.25.0 的页面结构写的，别家客户端或改版魔改版必然对不上。
+- **你要跨设备同步书稿。** 这个插件不搬运正文，草稿建在作家助手的云端项目里，同步靠客户端自己。关系图则是纯本地文件，不参与同步。
+
+反过来，它值得装的理由也很具体：每天不用惦记签到、开新书不用在客户端里点七八下、
+大纲使用量排行能直接看到、写作技巧文章不用另开浏览器——这些事一天省几分钟，攒起来才有意义。
 
 ## 安装
 
-DSH Desktop 里 **设置 → 插件**，搜索 `dsh-writer-assistant` 安装；或命令行：
+把整个目录放到：
 
-```sh
-dsh plugin --profile <profile> add dsh-writer-assistant
+```
+D:\deepseek harness\plugins\dsh-writer-assistant
 ```
 
-装好后侧边栏出现「作家助手」，主区多一个同名面板。
+然后在 DSH 桌面端的「设置 → 插件」里安装本地 bundle，或手动在 profile 的 `package.json` 里加入依赖与 `dsh.profile.bundles`，再重启 DSH。
+
+安装后侧边栏会出现「作家助手」入口；主区会多一个同名面板。
 
 ## 第一次使用
 
-1. 正常打开一次作家助手，确认已登录、能进首页。
-2. 面板点「启动并连接」。
-   - 没启动：DSH 带调试端口帮你启动。
-   - 已启动但没有调试端口：面板提示「需要重启才能连接」。**先保存正在写的内容**，再点「重启并连接」。
-3. 连接成功后，「我的」显示账号、今日签到状态、任务进度。
+1. 先正常打开一次作家助手，确认已经登录、能进首页。
+2. 在面板点「启动并连接」。
+   - 如果作家助手没开：DSH 会带调试端口启动它。
+   - 如果它已经开着但没有调试端口：面板会提示「需要重启才能连接」。先保存正在写的内容，再点「重启并连接」。
+3. 连接成功后，「我的」里会显示账号、今日签到状态和任务进度。
 
 ## 每日自动签到
 
-默认开启，09:00 执行，可在「我的」改开关和时间。
+默认开启，执行时间 09:00（可在「我的」里改）。
 
-- 需要 DSH 正在运行；DSH 关闭时不会在后台签到。
-- 到点后作家助手没开，会自动启动它。
-- 当天已签到则跳过，同一天不会重复点。
-- 只点「签到」，不点「补签」。
+- 只在 DSH 运行时生效；到点后如果作家助手没开，会自动启动它。
+- 当天已经签到过就跳过；同一天不会重复点。
+- 只点「签到」，不会点「补签」，所以不会消耗墨水。
 
-## 配置
+## 角色关系图
+
+「关系」标签是一张**完全本地**的关系图，不需要连接作家助手，断网也能用。
+
+- 左栏是角色标签：名字 + 身份，圆点表示是否有关系连线。点标签选中某人，图里只高亮他相关的线。
+- 中间是关系图：节点是角色，连线是关系。**颜色区分关系类型**（亲缘 / 情感 / 敌对 / 师徒 / 盟友 / 上下级 / 其他），
+  线越粗表示关联度越高，敌对用虚线、其他用点线。
+- 点节点：列出这个人的所有关系，以及每条关系的类型和关联度。
+- 点连线：显示关联性（类型 + 备注）、关联度（0–100 的进度条）和一句人话描述（如「羁绊深厚」）。
+- 图例在左栏底部，颜色与类型一一对应。
+
+关联度不是装饰数字：它参与布局计算，关联度高的两个人会被拉得更近。所以整张图能直观反映关系亲疏。
+
+数据存在 `~/.dsh/writer-assistant-relations.json`，是普通 JSON，可以直接用编辑器改，也可以放进 git：
+
+```json
+{
+  "version": 1,
+  "characters": [
+    { "id": "c1", "name": "沈未晞", "role": "主角", "note": "能听见器物说话" }
+  ],
+  "relations": [
+    { "id": "r1", "from": "c1", "to": "c5", "type": "kin", "strength": 90, "note": "父子，主线谜题起点" }
+  ]
+}
+```
+
+规则：
+
+- `type` 必须是 `kin` / `love` / `foe` / `mentor` / `ally` / `rank` / `other`，写错了会回落到 `other`。
+- 同一对人只保留一条关系；要多层次的羁绊，写在 `note` 里。
+- 删掉这个文件等于清空关系图，插件会重建空图，不会报错。
+- 上限：60 个角色、200 条关系。超过的部分会被忽略而不是让面板卡死。
+
+面板里的「载入示例」会写进一份七人示例图（覆盖全部七种关系类型），用来验证配色和布局；
+「清空」把图清成空的。两者都会立刻落盘，注意别在真实数据上误点。
+
+## 已知失效与应对
+
+这个插件靠**页面选择器**驱动作家助手，是最容易随客户端升级而失效的部分。下面是我验证过的版本和已知的脆弱点。
+
+| 环境 | 状态 | 说明 |
+| --- | --- | --- |
+| 作家助手 5.25.0（`yuewenedit.exe`） | ✅ 已验证 | 签到、建草稿、大纲排行、写作技巧、功能入口均可用 |
+| DSH Desktop（web profile） | ✅ 已验证 | 路由与面板注册正常 |
+| 作家助手其它版本 | ⚠️ 未知 | 选择器可能对不上 |
+| macOS 客户端 | ⚠️ 未验证 | 可执行文件路径与进程名按 Windows 写的 |
+| 手机端 App | ❌ 不支持 | 没有 CDP 调试端口 |
+
+**已知脆弱点，以及失效时的表现：**
+
+| 脆弱点 | 升级后可能出问题 | 面板的表现 |
+| --- | --- | --- |
+| 签到按钮文案 | 文案从「签到」改成别的 | 报「找不到签到按钮」，**不会乱点** |
+| 模板中心卡片结构 | `N使用` 文本格式变化 | 排行读不出来或使用量全为 0 |
+| 首页「新建」入口 | 菜单层级调整 | 建草稿失败并提示哪一步没找到 |
+| 阅创学堂 `label1` 分类 | 分类字段改名 | 分类筛选失效，仍能列出全部文章 |
+| 调试端口被占用 | 客户端启动即退 | 提示连不上，可在配置里改 `port` |
+
+**升级后自检的顺序**（从便宜到贵）：
+
+1. 「我的」点「刷新状态」——能不能看到账号，就说明 CDP 通不通。
+2. 签到——只读一次页面，最快验证选择器还活着。
+3. 大纲——验证模板中心那套解析。
+4. 建草稿——最重的一步，建议最后试，且别在正式作品上试。
+
+**如果 CAS 之后整块都不工作了**：先确认调试端口还开着（浏览器访问 `http://127.0.0.1:9222/json/version` 应该返回 JSON）。
+端口通了但面板报找不到元素，基本就是选择器过期，需要改 `lib/core.js` 里的选择器常量；
+这部分没有自动化回退，只能按页面结构重新对一遍。
+
+## 需要注意
+
+- 作家助手升级后页面结构可能变化。如果某个按钮找不到，面板会给出提示，不会强行点击。
+- 重启按钮会关闭作家助手进程；未保存的正文/大纲可能丢失，面板里有二次确认。
+- 本插件不读取作品正文，只读取首页作品列表、签到状态、模板中心卡片和公开的阅创学堂文章。
+- 调试端口默认 `9222`；如果被别的程序占用，可以在 `~/.dsh/writer-assistant.json` 里改 `port`，或删掉该文件恢复默认。
+
+## 配置文件
 
 `~/.dsh/writer-assistant.json`：
 
@@ -85,53 +163,49 @@ dsh plugin --profile <profile> add dsh-writer-assistant
 }
 ```
 
-面板里的开关与时间会写回这里。删掉该文件即恢复默认。
+面板里的开关和时间会直接写回这里。
 
-## 需要注意
+角色关系图单独存一份：`~/.dsh/writer-assistant-relations.json`（结构见上文「角色关系图」）。
 
-- 作家助手升级后页面结构可能变化。找不到按钮时面板会明确报错，绝不盲点。
-- 「重启并连接」会关闭作家助手进程，未保存的正文/大纲可能丢失，所以有二次确认。
-- 只读取首页作品列表、签到状态、模板中心卡片和公开的阅创学堂文章，**不读取作品正文**。
-- 不采集遥测；除 `127.0.0.1:9222` 与公开的阅创学堂页面外无网络请求。
-- 调试端口默认 `9222`，被占用时改 `port`。
-
-## HTTP 接口
+## 接口
 
 Host 半侧注册 `POST /writer-assistant/api`：
 
 ```json
 { "action": "status" }
-{ "action": "checkin" }
-{ "action": "topOutlines" }
-{ "action": "createDraft", "title": "书名", "synopsis": "简介", "useOutline": true, "outlineTitle": "组织群像总纲" }
-{ "action": "listTips", "category": "写作技巧" }
-{ "action": "listWorks" }
-{ "action": "openFeature", "label": "任务中心" }
+{ "action": "connect" }
 { "action": "restart" }
+{ "action": "checkin" }
+{ "action": "listWorks" }
+{ "action": "openWork", "title": "书名" }
+{ "action": "createDraft", "title": "书名", "synopsis": "简介", "useOutline": true, "outlineTitle": "组织群像总纲" }
+{ "action": "topOutlines" }
+{ "action": "listTips", "category": "写作技巧" }
+{ "action": "openTip", "url": "https://write.qq.com/..." }
+{ "action": "openFeature", "label": "任务中心" }
+{ "action": "focus" }
+{ "action": "getConfig" }
+{ "action": "setConfig", "patch": { "autoCheckin": true, "checkinHour": 9 } }
+{ "action": "runAutomation" }
+{ "action": "openConfigFolder" }
+{ "action": "getGraph" }
+{ "action": "saveGraph", "graph": { "version": 1, "characters": [], "relations": [] } }
+{ "action": "loadSampleGraph" }
+{ "action": "clearGraph" }
 ```
 
 返回 `{ "ok": true, "data": ... }` 或 `{ "ok": false, "error": "..." }`。
 
-## 许可
+`restart` 会关闭并重新启动作家助手进程，等价于点面板里的「重启并连接」（那里有二次确认，
+直接调接口没有）。`openConfigFolder` 目前固定返回一条错误，保留只是为了接口形状完整。
 
-MIT
+## 自检
 
----
+仓库带一组零依赖的测试，改完代码跑一遍：
 
-## English
+```sh
+node --test test/
+```
 
-A DeepSeek Harness bundle that controls the local **作家助手** (Yuewen's Windows author client) over the Chromium DevTools Protocol, so you can check in, create drafts, apply the most-used outline template, and read writing-technique articles without leaving DSH.
-
-**Four tabs:** 创作 (create drafts, list works) · 灵感 (idea prompts, technique articles) · 大纲 (outline template leaderboard) · 我的 (check-in, task progress, auto check-in, quick links, connection info).
-
-**How it works:** the host half launches or attaches to the client with `--remote-debugging-port=9222` (loopback only) and drives the page you are already signed into. It never stores credentials, never modifies the client, and never clicks 补签 (the ink-costing make-up check-in) — only the plain 签到 button.
-
-**Requirements:** Windows; the 作家助手 client installed; DSH Desktop. If the client is already running without the debug port, the panel asks before restarting it, because unsaved chapter text could be lost.
-
-**Install:** `dsh plugin --profile <profile> add dsh-writer-assistant`
-
-**Config:** `~/.dsh/writer-assistant.json` (`autoCheckin`, `checkinHour`, `port`, `appPath`).
-
-**Privacy:** no telemetry; the only outbound requests are to `127.0.0.1:9222` and the public `write.qq.com` article portal. Manuscript text is never read.
-
-MIT licensed.
+`test/docs-sync.test.mjs` 会核对 README 与代码是否一致——接口列表、标签名、配置项、
+关系类型表、文件路径，任何一处对不上都会失败。文档漂移在这里是测试失败，不是「以后再说」。
